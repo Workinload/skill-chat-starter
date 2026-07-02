@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import os
+import tempfile
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
@@ -5,7 +9,7 @@ from app.core.settings import settings
 from app.schemas import FileInfo
 
 router = APIRouter()
-UPLOAD_ROOT = Path("/tmp/skill-chat-uploads")
+UPLOAD_ROOT = Path(os.environ.get("UPLOAD_ROOT", str(Path(tempfile.gettempdir()) / "skill-chat-uploads")))
 UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
 
 

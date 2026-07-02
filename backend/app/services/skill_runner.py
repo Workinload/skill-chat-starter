@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from app.core.settings import settings
 from app.services.skill_registry import FeatureDefinition, SkillDefinition

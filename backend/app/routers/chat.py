@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from fastapi import APIRouter
 from app.schemas import ChatRequest, ChatResponse
 from app.services.chat_service import ChatService

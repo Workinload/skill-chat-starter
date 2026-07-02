@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from fastapi import APIRouter
 from app.services.skill_registry import SkillRegistry
 

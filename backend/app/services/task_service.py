@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 import uuid
 from app.schemas import TaskCreateRequest, TaskCreateResponse, TaskResult, TaskStatus

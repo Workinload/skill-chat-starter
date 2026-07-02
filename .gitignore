@@ -1,4 +1,5 @@
 .env
+.env.local
 .venv/
 node_modules/
 .next/
@@ -6,3 +7,4 @@ __pycache__/
 *.pyc
 runtime/
 .DS_Store
+pnpm-workspace.yaml
