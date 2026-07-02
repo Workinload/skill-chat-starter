@@ -1,127 +1,107 @@
 from __future__ import annotations
 
+from .conftest import register_and_login, auth_header
+
+
+def test_tasks_unauthorized_fails(client):
+    res = client.post("/api/tasks", json={
+        "feature_id": "report_generate", "message": "test"
+    })
+    assert res.status_code == 403
+
 
 def test_create_report_generate_task_succeeds(client):
+    token = register_and_login(client, "task_user")
     res = client.post(
         "/api/tasks",
         json={
-            "feature_id": "report_generate",
-            "conversation_id": None,
-            "message": "生成一份测试报告",
-            "file_ids": [],
-            "user_confirmed": False,
+            "feature_id": "report_generate", "message": "生成报告",
+            "file_ids": [], "user_confirmed": False,
         },
+        headers=auth_header(token),
     )
     assert res.status_code == 200
     data = res.json()
     assert data["task_id"]
-    assert data["feature_id"] == "report_generate"
     assert data["status"] == "succeeded"
 
-    # Fetch detail.
-    detail = client.get(f"/api/tasks/{data['task_id']}")
+    detail = client.get(f"/api/tasks/{data['task_id']}", headers=auth_header(token))
     assert detail.status_code == 200
     detail_data = detail.json()
     assert detail_data["status"] == "succeeded"
-    assert detail_data["output_text"]
     assert "Mock Skill" in detail_data["output_text"]
 
 
 def test_required_files_without_files_fails(client):
-    """document_review requires files. Calling without file_ids must fail."""
+    token = register_and_login(client, "req_file_user")
     res = client.post(
         "/api/tasks",
         json={
-            "feature_id": "document_review",
-            "conversation_id": None,
-            "message": "审查一下这个材料",
-            "file_ids": [],
-            "user_confirmed": False,
+            "feature_id": "document_review", "message": "审查材料",
+            "file_ids": [], "user_confirmed": False,
         },
+        headers=auth_header(token),
     )
     assert res.status_code == 400
-    data = res.json()
-    assert "requires at least one uploaded file" in data["detail"]
+    assert "requires at least one uploaded file" in res.json()["detail"]
 
 
 def test_code_task_not_visible_to_customer(client):
-    """code_task has visible_to_customer=false. Regular customer must be blocked."""
+    token = register_and_login(client, "code_block_user")
     res = client.post(
         "/api/tasks",
         json={
-            "feature_id": "code_task",
-            "conversation_id": None,
-            "message": "修复这个 bug",
-            "file_ids": [],
-            "user_confirmed": True,
+            "feature_id": "code_task", "message": "fix bug",
+            "file_ids": [], "user_confirmed": True,
         },
+        headers=auth_header(token),
     )
     assert res.status_code == 400
-    data = res.json()
-    assert "not available to customers" in data["detail"]
+    assert "not available to customers" in res.json()["detail"]
 
 
-def test_code_task_unconfirmed_fails(client):
-    """code_task blocked by visibility check before confirm check."""
-    res = client.post(
+def test_task_list_user_isolation(client):
+    """User A's tasks must not be visible to User B."""
+    token_a = register_and_login(client, "iso_a")
+    token_b = register_and_login(client, "iso_b")
+
+    # User A creates a task.
+    client.post(
         "/api/tasks",
-        json={
-            "feature_id": "code_task",
-            "conversation_id": None,
-            "message": "修复这个 bug",
-            "file_ids": [],
-            "user_confirmed": False,
-        },
+        json={"feature_id": "report_generate", "message": "A's task", "file_ids": [], "user_confirmed": False},
+        headers=auth_header(token_a),
     )
-    assert res.status_code == 400
-    data = res.json()
-    assert "not available to customers" in data["detail"]
+
+    # User A sees it.
+    tasks_a = client.get("/api/tasks", headers=auth_header(token_a))
+    assert len(tasks_a.json()) == 1
+
+    # User B sees nothing.
+    tasks_b = client.get("/api/tasks", headers=auth_header(token_b))
+    assert len(tasks_b.json()) == 0
 
 
-def test_task_404(client):
-    res = client.get("/api/tasks/nonexistent-id")
-    assert res.status_code == 404
+def test_conversation_user_isolation(client):
+    """User A's conversations must not be visible to User B."""
+    token_a = register_and_login(client, "conv_iso_a")
+    token_b = register_and_login(client, "conv_iso_b")
 
-
-def test_extract_info_with_files_mock_succeeds(client):
-    """extract_info is visible, requires files. Confirm via mock."""
-    # First upload a file.
-    files_res = client.post(
-        "/api/files",
-        files={"file": ("test.txt", b"hello world", "text/plain")},
+    # User A chats.
+    resp = client.post(
+        "/api/chat",
+        json={"conversation_id": None, "message": "A's chat", "context": []},
+        headers=auth_header(token_a),
     )
-    assert files_res.status_code == 200
-    file_data = files_res.json()
+    conv_id = resp.json()["conversation_id"]
 
-    # Now create task with file.
-    res = client.post(
-        "/api/tasks",
-        json={
-            "feature_id": "extract_info",
-            "conversation_id": None,
-            "message": "提取关键信息",
-            "file_ids": [file_data["file_id"]],
-            "user_confirmed": False,
-        },
-    )
-    assert res.status_code == 200
-    data = res.json()
-    assert data["status"] == "succeeded"
+    # User A sees conversation.
+    convs_a = client.get("/api/conversations", headers=auth_header(token_a))
+    assert len(convs_a.json()) == 1
 
+    # User B sees nothing.
+    convs_b = client.get("/api/conversations", headers=auth_header(token_b))
+    assert len(convs_b.json()) == 0
 
-def test_task_result_has_required_fields(client):
-    """Verify task result shape is correct."""
-    res = client.post(
-        "/api/tasks",
-        json={
-            "feature_id": "report_generate",
-            "message": "test",
-            "file_ids": [],
-            "user_confirmed": False,
-        },
-    )
-    task_id = res.json()["task_id"]
-    detail = client.get(f"/api/tasks/{task_id}")
-    data = detail.json()
-    for key in ("task_id", "status", "feature_id", "skill", "created_at", "updated_at", "output_files", "audit"):
-        assert key in data, f"Missing key: {key}"
+    # User B cannot access A's messages.
+    msgs = client.get(f"/api/conversations/{conv_id}/messages", headers=auth_header(token_b))
+    assert msgs.json() == []

@@ -8,11 +8,6 @@
     "start": "next start",
     "lint": "next lint"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp"
-    ]
-  },
   "dependencies": {
     "lucide-react": "latest",
     "next": "latest",

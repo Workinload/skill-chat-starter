@@ -8,4 +8,5 @@ __pycache__/
 runtime/
 backend/data/
 uploads/
+pnpm-workspace.yaml
 .DS_Store
