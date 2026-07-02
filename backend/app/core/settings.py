@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     max_task_seconds: int = 600
     allow_shell_for_code_skills: bool = False
 
+    jwt_secret: str = "dev-secret-change-in-production-32chars"
+
     config_dir: Path = Path(__file__).resolve().parents[3] / "config"
     skills_dir: Path = Path(__file__).resolve().parents[3] / "skills"
 

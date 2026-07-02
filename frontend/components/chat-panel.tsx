@@ -2,18 +2,22 @@
 
 import { useState } from "react";
 import { api } from "@/lib/api";
-import type { UploadedFile } from "@/lib/types";
+import type { FeatureInfo, UploadedFile } from "@/lib/types";
 
 type Msg = {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   text: string;
+  needsConfirm?: boolean;
+  pendingMessage?: string;
 };
 
 export function ChatPanel({
   selectedFeature,
+  features,
   files,
 }: {
-  selectedFeature: string | null;
+  selectedFeature: FeatureInfo | null;
+  features: FeatureInfo[];
   files: UploadedFile[];
 }) {
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -21,20 +25,17 @@ export function ChatPanel({
   const [messages, setMessages] = useState<Msg[]>([]);
   const [loading, setLoading] = useState(false);
 
-  async function send() {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput("");
+  async function executeSend(text: string, userConfirmed: boolean) {
     setMessages((m) => [...m, { role: "user", text }]);
     setLoading(true);
     try {
       if (selectedFeature) {
         const created = await api.createTask({
-          feature_id: selectedFeature,
+          feature_id: selectedFeature.feature_id,
           conversation_id: conversationId,
           message: text,
           file_ids: files.map((f) => f.file_id),
-          user_confirmed: true,
+          user_confirmed: userConfirmed,
         });
         const result = await api.getTask(created.task_id);
         setMessages((m) => [
@@ -63,12 +64,40 @@ export function ChatPanel({
     }
   }
 
+  async function send() {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput("");
+
+    // If feature requires confirmation, show confirm prompt instead of executing.
+    if (selectedFeature?.confirm_before_execute) {
+      setMessages((m) => [
+        ...m,
+        {
+          role: "system",
+          text: `功能「${selectedFeature.label}」需要确认后才能执行。请点击下方按钮确认或取消。`,
+          needsConfirm: true,
+          pendingMessage: text,
+        },
+      ]);
+      return;
+    }
+
+    await executeSend(text, false);
+  }
+
+  async function confirmAndSend(pendingMessage: string) {
+    await executeSend(pendingMessage, true);
+  }
+
   return (
     <section className="rounded-2xl border bg-white shadow-sm">
       <div className="border-b p-4">
         <h2 className="font-semibold">对话</h2>
         <p className="text-xs text-slate-500">
-          {selectedFeature ? "发送后将触发固定 Skill" : "普通聊天，不触发 Skill"}
+          {selectedFeature
+            ? `已选择功能：${selectedFeature.label}${selectedFeature.confirm_before_execute ? " · 需确认" : ""}`
+            : "普通聊天，不触发 Skill"}
         </p>
       </div>
 
@@ -80,14 +109,38 @@ export function ChatPanel({
         )}
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
-            <pre
-              className={
-                "inline-block max-w-[85%] rounded-2xl px-4 py-3 text-left text-sm " +
-                (m.role === "user" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-900")
-              }
-            >
-              {m.text}
-            </pre>
+            {m.needsConfirm ? (
+              <div className="inline-block max-w-[85%] rounded-2xl bg-amber-50 px-4 py-3 text-left text-sm">
+                <p>{m.text}</p>
+                <button
+                  onClick={() => confirmAndSend(m.pendingMessage || "")}
+                  className="mt-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
+                >
+                  确认执行
+                </button>
+                <button
+                  onClick={() => {
+                    setMessages((prev) => prev.filter((_, idx) => idx !== i));
+                  }}
+                  className="ml-2 mt-2 rounded-xl border px-4 py-2 text-sm hover:bg-slate-50"
+                >
+                  取消
+                </button>
+              </div>
+            ) : (
+              <pre
+                className={
+                  "inline-block max-w-[85%] rounded-2xl px-4 py-3 text-left text-sm whitespace-pre-wrap " +
+                  (m.role === "user"
+                    ? "bg-slate-900 text-white"
+                    : m.role === "system"
+                      ? "bg-blue-50 text-slate-700"
+                      : "bg-slate-100 text-slate-900")
+                }
+              >
+                {m.text}
+              </pre>
+            )}
           </div>
         ))}
         {loading && <div className="text-sm text-slate-500">处理中...</div>}
@@ -96,7 +149,13 @@ export function ChatPanel({
       <div className="flex gap-2 border-t p-4">
         <textarea
           className="min-h-[48px] flex-1 rounded-xl border p-3 text-sm outline-none focus:ring-2 focus:ring-slate-300"
-          placeholder={selectedFeature ? "描述你要执行的任务..." : "输入普通聊天内容..."}
+          placeholder={
+            selectedFeature
+              ? selectedFeature.confirm_before_execute
+                ? "描述你的任务，发送后将要求你确认..."
+                : "描述你要执行的任务..."
+              : "输入普通聊天内容..."
+          }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {

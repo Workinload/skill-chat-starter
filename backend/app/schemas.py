@@ -69,3 +69,47 @@ class FileInfo(BaseModel):
     filename: str
     content_type: str | None = None
     size_bytes: int
+
+
+# ---- Auth ----
+
+class RegisterRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=4, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    token: str
+    username: str
+
+
+# ---- Conversations ----
+
+class ConversationInfo(BaseModel):
+    id: int
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class MessageInfo(BaseModel):
+    id: int
+    role: str
+    content: str
+    created_at: datetime
+
+
+# ---- Task List ----
+
+class TaskListItem(BaseModel):
+    task_id: str
+    feature_id: str
+    skill: str
+    status: str
+    created_at: datetime
+    error: str | None = None

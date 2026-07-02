@@ -12,6 +12,9 @@ aiofiles==24.1.0
 httpx==0.28.1
 orjson==3.10.12
 eval_type_backport>=0.2.0
+bcrypt>=4.0
+PyJWT>=2.0
+aiosqlite>=0.20
 # For Claude Agent SDK integration (install separately when ready):
 # pip install claude-agent-sdk>=0.1.0
 # claude-agent-sdk>=0.1.0

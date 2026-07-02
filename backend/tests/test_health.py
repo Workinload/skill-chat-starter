@@ -1,0 +1,9 @@
+from __future__ import annotations
+
+
+def test_health_ok(client):
+    res = client.get("/health")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "ok"
+    assert data["service"] == "skill-chat-starter"

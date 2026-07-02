@@ -38,3 +38,31 @@ export type TaskResult = {
   output_files: string[];
   error?: string;
 };
+
+export type TaskListItem = {
+  task_id: string;
+  feature_id: string;
+  skill: string;
+  status: string;
+  created_at: string;
+  error?: string;
+};
+
+export type ConversationInfo = {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MessageInfo = {
+  id: number;
+  role: string;
+  content: string;
+  created_at: string;
+};
+
+export type AuthResponse = {
+  token: string;
+  username: string;
+};

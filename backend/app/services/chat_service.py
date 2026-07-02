@@ -5,7 +5,7 @@ from app.schemas import ChatRequest, ChatResponse
 
 
 class ChatService:
-    async def respond(self, req: ChatRequest) -> ChatResponse:
+    def respond(self, req: ChatRequest) -> ChatResponse:
         """普通聊天服务。
 
         MVP 先返回可替换的 mock。生产中可以在这里接普通模型 API。
@@ -19,6 +19,6 @@ class ChatService:
             answer = (
                 "这是普通上下文聊天模式，未触发任何 Skill。\n\n"
                 f"你刚才说：{msg}\n\n"
-                "如果要执行固定业务功能，请点击“生成报告 / 审查材料 / 提取信息”等按钮。"
+                '如果要执行固定业务功能，请点击“生成报告 / 审查材料 / 提取信息”等按钮。'
             )
         return ChatResponse(conversation_id=conversation_id, message=answer)

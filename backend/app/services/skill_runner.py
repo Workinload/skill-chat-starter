@@ -6,6 +6,18 @@ from app.services.skill_registry import FeatureDefinition, SkillDefinition
 
 
 class SkillRunner:
+    def run_sync(
+        self,
+        *,
+        feature: FeatureDefinition,
+        skill: SkillDefinition,
+        message: str,
+        workspace: Path,
+    ) -> str:
+        if settings.claude_agent_sdk_enabled:
+            raise RuntimeError("Claude Agent SDK is not available in sync mode. Use async runner.")
+        return self._run_mock(feature=feature, skill=skill, message=message, workspace=workspace)
+
     async def run(
         self,
         *,
@@ -21,41 +33,48 @@ class SkillRunner:
                 message=message,
                 workspace=workspace,
             )
-        return await self._run_mock(feature=feature, skill=skill, message=message, workspace=workspace)
+        return self._run_mock(feature=feature, skill=skill, message=message, workspace=workspace)
 
-    async def _run_mock(self, *, feature: FeatureDefinition, skill: SkillDefinition, message: str, workspace: Path) -> str:
+    def _run_mock(self, *, feature: FeatureDefinition, skill: SkillDefinition, message: str, workspace: Path) -> str:
         input_files = sorted([p.name for p in (workspace / "inputs").glob("*")])
-        output = f"""
-# Mock Skill 执行结果
-
-当前是 mock runner，未真正调用 Claude Agent SDK。
-
-## 功能
-
-- feature_id: `{feature.feature_id}`
-- label: `{feature.label}`
-- skill: `{skill.name}`
-- output_type: `{feature.output_type}`
-
-## 用户需求
-
-{message}
-
-## 已上传文件
-
-{chr(10).join([f'- {name}' for name in input_files]) if input_files else '- 暂无'}
-
-## 下一步
-
-将 `.env` 中设置：
-
-```env
-CLAUDE_AGENT_SDK_ENABLED=true
-ANTHROPIC_API_KEY=你的key
-```
-
-然后在 `backend/app/services/skill_runner.py` 中继续完善真实 Runner。
-""".strip()
+        output_lines = [
+            "# Mock Skill 执行结果",
+            "",
+            "当前是 mock runner，未真正调用 Claude Agent SDK。",
+            "",
+            "## 功能",
+            "",
+            f"- feature_id: `{feature.feature_id}`",
+            f"- label: `{feature.label}`",
+            f"- skill: `{skill.name}`",
+            f"- output_type: `{feature.output_type}`",
+            "",
+            "## 用户需求",
+            "",
+            message,
+            "",
+            "## 已上传文件",
+            "",
+        ]
+        if input_files:
+            for name in input_files:
+                output_lines.append(f"- {name}")
+        else:
+            output_lines.append("- 暂无")
+        output_lines.extend([
+            "",
+            "## 下一步",
+            "",
+            "将 `.env` 中设置：",
+            "",
+            "```env",
+            "CLAUDE_AGENT_SDK_ENABLED=true",
+            "ANTHROPIC_API_KEY=你的key",
+            "```",
+            "",
+            "然后在 `backend/app/services/skill_runner.py` 中继续完善真实 Runner。",
+        ])
+        output = "\n".join(output_lines)
         (workspace / "outputs" / "result.md").write_text(output, encoding="utf-8")
         return output
 
@@ -67,14 +86,9 @@ ANTHROPIC_API_KEY=你的key
         message: str,
         workspace: Path,
     ) -> str:
-        """Claude Agent SDK 执行层。
-
-        这个函数是生产化重点。当前版本使用官方 Python SDK 的 query() 形态。
-        你后续可以改成 ClaudeSDKClient 以支持长期会话、用户中断、结构化流式输出。
-        """
         try:
             from claude_agent_sdk import query, ClaudeAgentOptions
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:
             raise RuntimeError("claude-agent-sdk is not installed or not available") from exc
 
         system_prompt = f"""
@@ -128,10 +142,6 @@ Write generated artifacts under:
         return output
 
     def _extract_message_text(self, msg) -> str:
-        """兼容 SDK 消息对象/字典的简易文本提取。
-
-        SDK 消息结构可能随版本演进，生产中建议按官方类型细化处理。
-        """
         if isinstance(msg, str):
             return msg
         if isinstance(msg, dict):

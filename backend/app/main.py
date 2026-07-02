@@ -1,15 +1,25 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.database import init_db
 from app.core.settings import settings
-from app.routers import chat, tasks, files, features
+from app.routers import chat, tasks, files, features, auth, conversations
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
 
 app = FastAPI(
     title="Skill Chat Starter API",
-    version="0.1.0",
-    description="Lightweight chat + fixed feature Skill execution gateway.",
+    version="0.2.0",
+    description="Multi-user lightweight chat + fixed feature Skill execution gateway.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -20,8 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(features.router, prefix="/api/features", tags=["features"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(conversations.router, prefix="/api/conversations", tags=["conversations"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
 app.include_router(files.router, prefix="/api/files", tags=["files"])
 

@@ -8,8 +8,8 @@ export function FeatureBar({
   onSelect,
 }: {
   features: FeatureInfo[];
-  selectedFeature: string | null;
-  onSelect: (featureId: string | null) => void;
+  selectedFeature: FeatureInfo | null;
+  onSelect: (feature: FeatureInfo | null) => void;
 }) {
   return (
     <section className="rounded-2xl border bg-white p-4 shadow-sm">
@@ -26,10 +26,10 @@ export function FeatureBar({
         {features.map((f) => (
           <button
             key={f.feature_id}
-            onClick={() => onSelect(f.feature_id)}
+            onClick={() => onSelect(f)}
             className={
               "rounded-xl border px-4 py-2 text-sm transition " +
-              (selectedFeature === f.feature_id
+              (selectedFeature?.feature_id === f.feature_id
                 ? "border-slate-900 bg-slate-900 text-white"
                 : "bg-white hover:bg-slate-50")
             }
@@ -41,7 +41,7 @@ export function FeatureBar({
         ))}
       </div>
       <p className="mt-3 text-xs text-slate-500">
-        当前模式：{selectedFeature ? `功能执行：${selectedFeature}` : "普通上下文聊天"}
+        当前模式：{selectedFeature ? `功能：${selectedFeature.label}` : "普通上下文聊天"}
       </p>
     </section>
   );
