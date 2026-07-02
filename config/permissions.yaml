@@ -1,0 +1,75 @@
+profiles:
+  readonly_document:
+    allow_read: true
+    allow_write: false
+    allow_edit: false
+    allow_bash: false
+    allow_network: false
+    deny_paths:
+      - ".env"
+      - ".env.*"
+      - "secrets/"
+      - "node_modules/"
+      - ".git/"
+      - "/etc/"
+      - "/var/"
+      - "/root/"
+      - "/home/"
+    allowed_extensions:
+      - ".txt"
+      - ".md"
+      - ".docx"
+      - ".pdf"
+      - ".xlsx"
+      - ".csv"
+      - ".json"
+
+  document_safe:
+    allow_read: true
+    allow_write: true
+    allow_edit: true
+    allow_bash: false
+    allow_network: false
+    deny_paths:
+      - ".env"
+      - ".env.*"
+      - "secrets/"
+      - ".git/"
+      - "/etc/"
+      - "/var/"
+      - "/root/"
+      - "/home/"
+    writable_paths:
+      - "outputs/"
+      - "drafts/"
+
+  code_sandbox:
+    allow_read: true
+    allow_write: true
+    allow_edit: true
+    allow_bash: true
+    allow_network: false
+    require_sandbox: true
+    deny_paths:
+      - ".env"
+      - ".env.*"
+      - "secrets/"
+      - "*.pem"
+      - "*.key"
+      - "/etc/"
+      - "/var/"
+      - "/root/"
+      - "/home/"
+    bash_deny_patterns:
+      - "rm -rf /"
+      - "sudo"
+      - "ssh"
+      - "scp"
+      - "curl"
+      - "wget"
+      - "nc "
+      - "ncat"
+      - "chmod 777"
+      - "mkfs"
+      - "dd if="
+      - "docker run --privileged"

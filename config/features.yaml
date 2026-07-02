@@ -1,0 +1,81 @@
+features:
+  report_generate:
+    label: 生成报告
+    description: 根据用户材料生成结构化业务报告。客户点击按钮才触发。
+    skill: report-generator
+    required_files: false
+    output_type: markdown
+    allow_tools:
+      - Read
+      - Write
+      - Edit
+      - Glob
+      - Grep
+    allow_shell: false
+    permission_profile: document_safe
+    confirm_before_execute: false
+    visible_to_customer: true
+    trigger_keywords:
+      - 生成报告
+      - 写报告
+      - 出报告
+
+  document_review:
+    label: 审查材料
+    description: 审查上传文档，输出问题、风险、缺失项和修改建议。
+    skill: document-reviewer
+    required_files: true
+    output_type: markdown
+    allow_tools:
+      - Read
+      - Glob
+      - Grep
+    allow_shell: false
+    permission_profile: readonly_document
+    confirm_before_execute: false
+    visible_to_customer: true
+    trigger_keywords:
+      - 审查材料
+      - 检查文档
+      - 看看材料
+
+  code_task:
+    label: 代码任务
+    description: 面向内部或高级客户的代码检查、修复和配置生成。
+    skill: code-task-runner
+    required_files: true
+    output_type: zip
+    allow_tools:
+      - Read
+      - Write
+      - Edit
+      - Glob
+      - Grep
+      - Bash
+    allow_shell: true
+    permission_profile: code_sandbox
+    confirm_before_execute: true
+    visible_to_customer: false
+    trigger_keywords:
+      - 修复代码
+      - 检查报错
+      - 生成配置
+
+  extract_info:
+    label: 提取信息
+    description: 从上传材料中提取关键字段，返回结构化表格。
+    skill: info-extractor
+    required_files: true
+    output_type: json_markdown
+    allow_tools:
+      - Read
+      - Glob
+      - Grep
+    allow_shell: false
+    permission_profile: readonly_document
+    confirm_before_execute: false
+    visible_to_customer: true
+    trigger_keywords:
+      - 提取信息
+      - 提取字段
+      - 整理表格
